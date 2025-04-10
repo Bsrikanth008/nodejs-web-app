@@ -5,13 +5,6 @@ pipeline {
         DOCKER_IMAGE = 'srikanthberla/first-project'
     }
 
-    stages {
-        stage('Clone Repo') {
-            steps {
-                git 'https://github.com/Bsrikanth008/nodejs-web-app.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -32,7 +25,7 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                sh "docker run -d -p 8080:80 ${DOCKER_IMAGE}"
+                sh "docker run -d -p 3000:3000 ${DOCKER_IMAGE}"
             }
         }
     }
