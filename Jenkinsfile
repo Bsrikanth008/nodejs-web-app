@@ -2,45 +2,52 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "Bsrikanth008/nodejs-web-app-1:${BUILD_NUMBER}"
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // ID from Jenkins Credentials
+        DOCKER_IMAGE = 'srikanthberla/my-app-2'
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Clone Repository') {
             steps {
-                git url: 'https://github.com/Bsrikanth008/nodejs-web-app.git', branch: 'main'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                git 'https://github.com/Bsrikanth008/nodejs-web-app.git'
             }
         }
 
         stage('Login to Docker Hub') {
             steps {
-                sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh "docker push $IMAGE_NAME"
+                sh 'docker push $DOCKER_IMAGE'
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh "docker run -d -p 3000:3000 --name node_app_$BUILD_NUMBER $IMAGE_NAME"
+                sh '''
+                    docker stop myapp || true
+                    docker rm myapp || true
+                    docker run -d --name myapp -p 3000:3000 $DOCKER_IMAGE
+                '''
             }
         }
     }
 
     post {
         always {
-            echo "Build complete. Status: ${currentBuild.currentResult}"
+            echo 'Build complete.'
         }
     }
 }
